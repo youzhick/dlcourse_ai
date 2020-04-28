@@ -1,5 +1,6 @@
 import numpy as np
 
+# Assignment 3 version
 
 def l2_regularization(W, reg_strength):
     '''
@@ -14,7 +15,8 @@ def l2_regularization(W, reg_strength):
       gradient, np.array same shape as W - gradient of weight by l2 loss
     '''
     # TODO: Copy from previous assignment
-    raise Exception("Not implemented!")
+    loss = np.sum(W*W)*reg_strength
+    grad = 2*W*reg_strength
 
     return loss, grad
 
@@ -35,7 +37,15 @@ def softmax_with_cross_entropy(predictions, target_index):
       dprediction, np array same shape as predictions - gradient of predictions by loss value
     '''
     # TODO copy from the previous assignment
-    raise Exception("Not implemented!")
+    batch_size = predictions.shape[0] if len(predictions.shape) > 1 else 1
+
+    probs = softmax(predictions)
+    loss = cross_entropy_loss(probs, target_index)
+
+    dprediction = softmax(predictions)
+    dprediction[target_index if len(predictions.shape) == 1 else (range(batch_size), target_index)] -= 1
+    dprediction /= batch_size
+
     return loss, dprediction
 
 
@@ -47,22 +57,46 @@ class Param:
     def __init__(self, value):
         self.value = value
         self.grad = np.zeros_like(value)
+        
+    def updateVal(self):
+        self.value += self.grad
+
+    def resetGrad(self):
+        self.grad.fill(0)
 
         
+def relu_func(x):
+    return np.array([0 if i < 0 else i for i in x.flatten()]).reshape(x.shape)
+
+def drelu_func(x):
+    return np.array([0 if i < 0 else 1 for i in x.flatten()]).reshape(x.shape)
+
+
 class ReLULayer:
+    def relu_func(self, x):
+        return 0 if x < 0 else x
+
+    def drelu_func(self, x):
+        return 0 if x < 0 else 1
+
     def __init__(self):
+        #self.relu = np.vectorize(self.relu_func)
+        #self.drelu = np.vectorize(self.drelu_func)
         pass
 
     def forward(self, X):
         # TODO copy from the previous assignment
-        raise Exception("Not implemented!")
+        self.X = X.copy()
+        return relu_func(X)
+        #res = np.vectorize(lambda a: 0 if a < 0 else a)(X)
+        #return self.relu(X)
 
     def backward(self, d_out):
         # TODO copy from the previous assignment
-        raise Exception("Not implemented!")
-        return d_result
+        return d_out*drelu_func(self.X)
 
     def params(self):
+        # ReLU Doesn't have any parameters
         return {}
 
 
@@ -74,12 +108,15 @@ class FullyConnectedLayer:
 
     def forward(self, X):
         # TODO copy from the previous assignment
-        raise Exception("Not implemented!")
+        self.X = X.copy()
+        return np.dot(X, self.W.value) + self.B.value
 
     def backward(self, d_out):
         # TODO copy from the previous assignment
+        self.W.grad += np.dot(self.X.T, d_out)
+        self.B.grad += np.dot(np.ones((1, self.X.shape[0])), d_out)
         
-        raise Exception("Not implemented!")        
+        d_input = np.dot(d_out, self.W.value.T)
         return d_input
 
     def params(self):
@@ -207,3 +244,18 @@ class Flattener:
     def params(self):
         # No params!
         return {}
+
+    '''
+    #Flattener from ther previous assignment:
+    sample, label = data_train[0]
+    print("SVHN data sample shape: ", sample.shape)
+    # As you can see, the data is shaped like an image
+
+    # We'll use a special helper module to shape it into a tensor
+    class Flattener(nn.Module):
+        def forward(self, x):
+            batch_size, *_ = x.shape
+            return x.view(batch_size, -1)
+    '''
+    
+    
